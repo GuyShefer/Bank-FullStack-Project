@@ -7,7 +7,7 @@
     "build": "webpack --mode production",
     "dev": "npm run build && node src/server/index.js",
     "client": "webpack-dev-server --mode development --devtool inline-source-map --hot",
-    "server": "nodemon src/server/index.js",
+    "server": "node src/server/index.js",
     "start": "concurrently \"npm run server\" \"npm run client\""
   },
   "author": "Sandeep Raveesh",
