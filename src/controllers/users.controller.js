@@ -169,9 +169,21 @@ const getActiveUsersWithSpecifiedAmount = async (req, res) => {
         return res.status(406).send('No users.');
     }
     else if (users.length === 0) {
-        return res.status(200).send('No users')
+        return res.status(200).send('No users.')
     }
     res.status(200).json(users);
+}
+
+const getOperationHistory = async (req,res) => {
+    const id = req.params.id;
+    if (id == null) {
+        return res.status(406).send('The request must include a valid ID.');
+    }
+    else if (!await isUserExistById(id)) {
+        return res.status(406).send('User is not exists.');
+    }
+    const opertaions = await Transaction.find({user_id : id});
+    res.status(200).json(opertaions);
 }
 
 // Validations Functions //
@@ -206,4 +218,5 @@ module.exports = {
     getAllUsers,
     getAllUsersSortedByMoney,
     getActiveUsersWithSpecifiedAmount,
+    getOperationHistory,
 }

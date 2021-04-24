@@ -38,4 +38,8 @@ router.get('/getActiveUsersWithSpecifiedAmount/:amount', (req, res) => {
     usersController.getActiveUsersWithSpecifiedAmount(req, res);
 })
 
+router.get('/getUserOperationHistory/:id', (req, res) => {
+    usersController.getOperationHistory(req, res);
+})
+
 module.exports = router;
