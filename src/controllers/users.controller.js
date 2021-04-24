@@ -26,7 +26,7 @@ const depositeCash = async (req, res) => {
     if (id == null || cash < 1) {
         return res.status(406).send('The request must include a valid ID and a positive amount of money.');
     }
-    else if (!isUserActive(id)) {
+    else if (!await isUserActive(id)) {
         return res.status(406).send('The User is not active.');
     }
     else {
@@ -49,7 +49,7 @@ const updateCredit = async (req, res) => {
     if (id == 0 || credit < 0) {
         return res.status(406).send('The request must include a valid ID and a positive credit number.');
     }
-    else if (!isUserActive(id)) {
+    else if (!await isUserActive(id)) {
         return res.status(406).send('The User is not active.');
     }
     else {
@@ -72,7 +72,7 @@ const withdrawCash = async (req, res) => {
     if (id == null || cash < 0) {
         return res.status(406).send('The request must include a valid ID and a positive cash amount.');
     }
-    else if (!isUserActive(id)) {
+    else if (!await isUserActive(id)) {
         return res.status(406).send('The User is not active.');
     }
     else if (!await validCashWithdraw(id, cash)) {
