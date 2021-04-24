@@ -178,7 +178,7 @@ const getActiveUsersWithSpecifiedAmount = async (req, res) => {
 
 const isUserExistByEmail = async (email) => {
     const user = await User.find({ email: email });
-    return user.length !== 0 ? true : false;
+    return user[0].email != null ? true : false;
 }
 
 const isUserExistById = async (id) => {
