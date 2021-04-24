@@ -190,7 +190,7 @@ const getOperationHistory = async (req,res) => {
 
 const isUserExistByEmail = async (email) => {
     const user = await User.find({ email: email });
-    return user[0].email != null ? true : false;
+    return user.length > 0 ? true : false;
 }
 
 const isUserExistById = async (id) => {
