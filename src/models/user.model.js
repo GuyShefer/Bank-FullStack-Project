@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const userSchema = new mongoose.Schema({
     email: {
@@ -31,9 +32,25 @@ const userSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
-    }
+    },
+    tokens: [{
+        token: {
+            type: String,
+            required: true
+        }
+    }]
 });
 
+// create user token
+userSchema.methods.generateAuthToken = async function () {
+    const user = this;
+    const token = jwt.sign({ _id: user.id.toString() }, 'appleseedsAcademyBootcamp');
+    user.tokens = user.tokens.concat({ token });
+    await user.save();
+    return token;
+}
+
+// valid user by email and password
 userSchema.statics.findByCredentials = async (email, password) => {
     const user = await User.find({ email });
     if (!user) {

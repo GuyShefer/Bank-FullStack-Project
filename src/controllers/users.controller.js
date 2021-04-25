@@ -14,7 +14,8 @@ const addUser = async (req, res) => {
         try {
             const user = new User(extractUser);
             await user.save();
-            res.status(201).send('User has been created.');
+            const token = await user.generateAuthToken();
+            res.status(201).send({messege :'User has been created.', token});
         } catch (err) {
             res.status(400).send(err.message);
         }
@@ -27,7 +28,8 @@ const login = async (req, res) => {
     /// validation
     try {
         const user = await User.findByCredentials(email, password);
-        res.status(200).send(user);
+        const token = await user[0].generateAuthToken();
+        res.status(200).send({user, token});
     } catch (err) {
         res.status(400);
     }
