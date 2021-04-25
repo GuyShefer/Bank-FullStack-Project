@@ -2,9 +2,9 @@ const User = require('../models/user.model');
 const Transaction = require('../models/transaction.modal');
 
 const addUser = async (req, res) => {
-    const extractUser = { email, cash, credit, isActive } = req.body;
+    const extractUser = { email, password, cash, credit, isActive } = req.body;
 
-    if (email == null || cash < 0 || credit < 0 || isActive == null) {
+    if (email == null || password == null || cash < 0 || credit < 0 || isActive == null) {
         return res.status(406).send('User must contain email, cash, credit and activity.');
     }
     else if (await isUserExistByEmail(email)) {
@@ -18,6 +18,18 @@ const addUser = async (req, res) => {
         } catch (err) {
             res.status(400).send(err.message);
         }
+    }
+}
+
+const login = async (req, res) => {
+    const email = req.body.email;
+    const password = req.body.password;
+    /// validation
+    try {
+        const user = await User.findByCredentials(email, password);
+        res.status(200).send(user);
+    } catch (err) {
+        res.status(400);
     }
 }
 
@@ -174,7 +186,7 @@ const getActiveUsersWithSpecifiedAmount = async (req, res) => {
     res.status(200).json(users);
 }
 
-const getOperationHistory = async (req,res) => {
+const getOperationHistory = async (req, res) => {
     const id = req.params.id;
     if (id == null) {
         return res.status(406).send('The request must include a valid ID.');
@@ -182,7 +194,7 @@ const getOperationHistory = async (req,res) => {
     else if (!await isUserExistById(id)) {
         return res.status(406).send('User is not exists.');
     }
-    const opertaions = await Transaction.find({user_id : id});
+    const opertaions = await Transaction.find({ user_id: id });
     res.status(200).json(opertaions);
 }
 
@@ -219,4 +231,5 @@ module.exports = {
     getAllUsersSortedByMoney,
     getActiveUsersWithSpecifiedAmount,
     getOperationHistory,
+    login,
 }

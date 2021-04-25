@@ -6,6 +6,10 @@ router.post('/', (req, res) => {
     usersController.addUser(req, res);
 })
 
+router.post('/login', (req, res) => {
+    usersController.login(req, res);
+})
+
 router.put('/deposite', (req, res) => {
     usersController.depositeCash(req, res);
 })
