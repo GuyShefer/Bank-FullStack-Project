@@ -15,10 +15,32 @@ const addUser = async (req, res) => {
             const user = new User(extractUser);
             await user.save();
             const token = await user.generateAuthToken();
-            res.status(201).send({messege :'User has been created.', token});
+            res.status(201).send({ messege: 'User has been created.', token });
         } catch (err) {
             res.status(400).send(err.message);
         }
+    }
+}
+
+const logout = async (req, res) => {
+    try {
+        req.user.tokens = req.user.tokens.filter((token) => {
+            return token.token !== req.token
+        })
+        await req.user.save();
+        res.send();
+    } catch (err) {
+        res.status(500).send();
+    }
+}
+
+const logoutAll = async (req, res) => {
+    try {
+        req.user.tokens = [];
+        await req.user.save();
+        res.send();
+    } catch (err) {
+        res.status(500).send();
     }
 }
 
@@ -29,7 +51,7 @@ const login = async (req, res) => {
     try {
         const user = await User.findByCredentials(email, password);
         const token = await user[0].generateAuthToken();
-        res.status(200).send({user, token});
+        res.status(200).send({ user, token });
     } catch (err) {
         res.status(400);
     }
@@ -62,6 +84,9 @@ const updateCredit = async (req, res) => {
     const { id, credit } = req.body;
     if (id == 0 || credit < 0) {
         return res.status(406).send('The request must include a valid ID and a positive credit number.');
+    }
+    else if (!await isUserExistById(id)) {
+        return res.status(406).send('The user is not exists.');
     }
     else if (!await isUserActive(id)) {
         return res.status(406).send('The User is not active.');
@@ -137,32 +162,37 @@ const transferrMoney = async (req, res) => {
     }
 }
 
-const getUserById = async (req, res) => {
-    const id = req.params.id;
-    if (id == null) {
-        return res.status(406).send('The request must include a valid Id.');
-    }
-    else if (!await isUserExistById(id)) {
-        return res.status(406).send('The User is not exists.');
-    }
-    else {
-        const user = await User.findById(id)
-        if (!user) {
-            return res.status(406).send('The User is not exists.');
-        }
-        res.status(200).json(user);
-    }
+const getUser = async (req, res) => {
+    // const id = req.params.id;
+    // if (id == null) {
+    //     return res.status(406).send('The request must include a valid Id.');
+    // }
+    // else if (!await isUserExistById(id)) {
+    //     return res.status(406).send('The User is not exists.');
+    // }
+    // else {
+    //     const user = await User.findById(id)
+    //     if (!user) {
+    //         return res.status(406).send('The User is not exists.');
+    //     }
+    //     res.status(200).json(user);
+    // }
+    res.send(req.user);
 }
 
 const getAllUsers = async (req, res) => {
-    const users = await User.find({});
-    if (!users) {
-        return res.status(406).send('No users.');
+    try {
+        const users = await User.find({});
+        if (!users) {
+            return res.status(406).send('No users.');
+        }
+        else if (users.length === 0) {
+            return res.status(200).send('No users')
+        }
+        res.status(200).json(users);
+    } catch (err) {
+        res.status(500).send();
     }
-    else if (users.length === 0) {
-        return res.status(200).send('No users')
-    }
-    res.status(200).json(users);
 }
 
 const getAllUsersSortedByMoney = async (req, res) => {
@@ -228,10 +258,12 @@ module.exports = {
     updateCredit,
     withdrawCash,
     transferrMoney,
-    getUserById,
+    getUser,
     getAllUsers,
     getAllUsersSortedByMoney,
     getActiveUsersWithSpecifiedAmount,
     getOperationHistory,
     login,
+    logout,
+    logoutAll,
 }
