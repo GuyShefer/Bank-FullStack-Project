@@ -41,6 +41,14 @@ const userSchema = new mongoose.Schema({
     }]
 });
 
+// make a relationship betweeen User to Transaction
+userSchema.virtual('transactions', {
+    ref : 'Transaction',
+    localField: '_id',
+    foreignField: 'owner'
+})
+
+// filtering user object for display
 userSchema.methods.toJSON = function () {
     const user = this;
     const userObject = user.toObject();

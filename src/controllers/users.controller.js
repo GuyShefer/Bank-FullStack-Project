@@ -58,20 +58,21 @@ const login = async (req, res) => {
 }
 
 const depositeCash = async (req, res) => {
-    const { id, cash } = req.body;
-    if (id == null || cash < 1) {
-        return res.status(406).send('The request must include a valid ID and a positive amount of money.');
+    const { cash } = req.body;
+
+    if (cash < 1) {
+        return res.status(406).send('The request must include a positive amount of money.');
     }
-    else if (!await isUserActive(id)) {
+    else if (!req.user.isActive) {
         return res.status(406).send('The User is not active.');
     }
     else {
         try {
-            const user = await User.findByIdAndUpdate(id, { $inc: { cash: +cash } }, { new: true, runValidators: true });
+            const user = await User.findByIdAndUpdate(req.user._id, { $inc: { cash: +cash } }, { new: true, runValidators: true });
             if (!user) {
                 return res.status(406).send('The User is not exists.');
             }
-            const transaction = new Transaction({ user_id: id, operation_type: 'depositeCash', description: `Deposit of ${cash}` });
+            const transaction = new Transaction({ operation_type: 'depositeCash', description: `Deposit of ${cash}`, owner: req.user._id });
             await transaction.save();
             res.status(200).send('User funds have been successfully deposited.');
         } catch (err) {
@@ -163,20 +164,6 @@ const transferrMoney = async (req, res) => {
 }
 
 const getUser = async (req, res) => {
-    // const id = req.params.id;
-    // if (id == null) {
-    //     return res.status(406).send('The request must include a valid Id.');
-    // }
-    // else if (!await isUserExistById(id)) {
-    //     return res.status(406).send('The User is not exists.');
-    // }
-    // else {
-    //     const user = await User.findById(id)
-    //     if (!user) {
-    //         return res.status(406).send('The User is not exists.');
-    //     }
-    //     res.status(200).json(user);
-    // }
     res.send(req.user);
 }
 
@@ -219,15 +206,9 @@ const getActiveUsersWithSpecifiedAmount = async (req, res) => {
 }
 
 const getOperationHistory = async (req, res) => {
-    const id = req.params.id;
-    if (id == null) {
-        return res.status(406).send('The request must include a valid ID.');
-    }
-    else if (!await isUserExistById(id)) {
-        return res.status(406).send('User is not exists.');
-    }
-    const opertaions = await Transaction.find({ user_id: id });
-    res.status(200).json(opertaions);
+    const user = await User.findById(req.user._id);
+    await user.populate('transactions').execPopulate();
+    res.status(200).json(user.transactions);
 }
 
 // Validations Functions //

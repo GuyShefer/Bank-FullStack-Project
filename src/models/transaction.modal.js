@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 
-const Transaction = mongoose.model('transaction', {
-    user_id: {
-        type: String,
-        trim: true,
-        required: true
-    },
+const Transaction = mongoose.model('Transaction', {
     operation_type: {
         type: String,
         trim: true,
@@ -15,6 +10,11 @@ const Transaction = mongoose.model('transaction', {
         type: String,
         trim: true,
         required: true
+    },
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
     }
 })
 

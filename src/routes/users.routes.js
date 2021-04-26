@@ -51,7 +51,7 @@ router.get('/getActiveUsersWithSpecifiedAmount/:amount', auth, (req, res) => {
     usersController.getActiveUsersWithSpecifiedAmount(req, res);
 })
 
-router.get('/getUserOperationHistory/:id', auth, (req, res) => {
+router.get('/getUserOperationHistory', auth, (req, res) => {
     usersController.getOperationHistory(req, res);
 })
 
