@@ -68,10 +68,7 @@ const depositeCash = async (req, res) => {
     }
     else {
         try {
-            const user = await User.findByIdAndUpdate(req.user._id, { $inc: { cash: +cash } }, { new: true, runValidators: true });
-            if (!user) {
-                return res.status(406).send('The User is not exists.');
-            }
+            await User.findByIdAndUpdate(req.user._id, { $inc: { cash: +cash } }, { new: true, runValidators: true });
             const transaction = new Transaction({ operation_type: 'depositeCash', description: `Deposit of ${cash}`, owner: req.user._id });
             await transaction.save();
             res.status(200).send('User funds have been successfully deposited.');
@@ -82,23 +79,17 @@ const depositeCash = async (req, res) => {
 }
 
 const updateCredit = async (req, res) => {
-    const { id, credit } = req.body;
-    if (id == 0 || credit < 0) {
-        return res.status(406).send('The request must include a valid ID and a positive credit number.');
+    const { credit } = req.body;
+    if (credit < 0) {
+        return res.status(406).send('The request must include a positive credit number.');
     }
-    else if (!await isUserExistById(id)) {
-        return res.status(406).send('The user is not exists.');
-    }
-    else if (!await isUserActive(id)) {
+    else if (!req.user.isActive) {
         return res.status(406).send('The User is not active.');
     }
     else {
         try {
-            const user = await User.findByIdAndUpdate(id, { credit }, { new: true, runValidators: true });
-            if (!user) {
-                return res.status(406).send('The User is not exists.');
-            }
-            const transaction = new Transaction({ user_id: id, operation_type: 'updateCredit', description: `Update credit number to ${credit}` });
+            await User.findByIdAndUpdate(req.user._id, { credit }, { new: true, runValidators: true });
+            const transaction = new Transaction({ operation_type: 'updateCredit', description: `Update credit number to ${credit}`, owner: req.user._id });
             await transaction.save();
             res.status(200).send('User credit amount successfully updated.');
         } catch (err) {
@@ -108,23 +99,20 @@ const updateCredit = async (req, res) => {
 }
 
 const withdrawCash = async (req, res) => {
-    const { id, cash } = req.body;
-    if (id == null || cash < 0) {
-        return res.status(204).send('The request must include a valid ID and a positive cash amount.');
+    const { cash } = req.body;
+    if (cash < 0) {
+        return res.status(204).send('The request must include a positive cash amount.');
     }
-    else if (! await isUserActive(id)) {
+    else if (!req.user.isActive) {
         return res.status(204).send('The User is not active.');
     }
-    else if (!await validCashWithdraw(id, cash)) {
+    else if (!validCashWithdraw(req.user, cash)) {
         return res.status(406).send('The amount of cash is not possible, you exceed the amount limit.');
     }
     else {
         try {
-            const user = await User.findByIdAndUpdate(id, { $inc: { cash: -cash } }, { new: true, runValidators: true });
-            if (!user) {
-                return res.status(406).send('The User is not exists.');
-            }
-            const transaction = new Transaction({ user_id: id, operation_type: 'withdrawCash', description: `withdraw ${cash}` });
+            await User.findByIdAndUpdate(req.user._id, { $inc: { cash: -cash } }, { new: true, runValidators: true });
+            const transaction = new Transaction({ operation_type: 'withdrawCash', description: `withdraw ${cash}`, owner: req.user._id });
             await transaction.save();
             res.status(200).send('Cash withdrawal was successful.');
         } catch (err) {
@@ -134,27 +122,27 @@ const withdrawCash = async (req, res) => {
 }
 
 const transferrMoney = async (req, res) => {
-    const { receivingUserId, sendingUserId, amount } = req.body;
-    if (receivingUserId == null || sendingUserId == null || amount < 1) {
-        return res.status(406).send('The request must include a valid IDs and a positive cash amount.');
+    const { receivingUserId, amount } = req.body;
+    if (receivingUserId == null || amount < 1) {
+        return res.status(406).send('The request must include a valid ID and a positive cash amount.');
     }
-    else if (!await isUserExistById(receivingUserId) || !await isUserExistById(sendingUserId)) {
-        return res.status(406).send('One or more of the users is not exists.');
+    else if (!await isUserExistById(receivingUserId)) {
+        return res.status(406).send('The receiving user is not exists.');
     }
-    else if (!await isUserActive(receivingUserId) || !await isUserActive(sendingUserId)) {
+    else if (!await isUserActive(receivingUserId) || !req.user.isActive) {
         return res.status(406).send('One or more of the users are not active.');
     }
-    else if (!await validCashWithdraw(sendingUserId, amount)) {
+    else if (!validCashWithdraw(req.user, amount)) {
         return res.status(406).send('The amount of cash is not possible, the sending user exceeds his amount limit.');
     }
     else {
         try {
-            await User.findByIdAndUpdate(sendingUserId, { $inc: { cash: -amount } }, { new: true, runValidators: true });
+            await User.findByIdAndUpdate(req.user._id, { $inc: { cash: -amount } }, { new: true, runValidators: true });
             await User.findByIdAndUpdate(receivingUserId, { $inc: { cash: +amount } }, { new: true, runValidators: true });
 
-            const sendingTransaction = new Transaction({ user_id: sendingUserId, operation_type: 'transferrMoney', description: `Transferring ${amount} to another account.` });
+            const sendingTransaction = new Transaction({ operation_type: 'transferrMoney', description: `Transferring ${amount} to another account.`, owner: req.user._id });
             await sendingTransaction.save();
-            const recievingtransaction = new Transaction({ user_id: receivingUserId, operation_type: 'transferrMoney', description: `${amount} receipt via transfer.` });
+            const recievingtransaction = new Transaction({ operation_type: 'transferrMoney', description: `${amount} receipt via transfer.`, owner: receivingUserId });
             await recievingtransaction.save();
             res.status(200).send('The amount of money was successfully transferred between the users.');
         } catch (err) {
@@ -206,9 +194,12 @@ const getActiveUsersWithSpecifiedAmount = async (req, res) => {
 }
 
 const getOperationHistory = async (req, res) => {
-    const user = await User.findById(req.user._id);
-    await user.populate('transactions').execPopulate();
-    res.status(200).json(user.transactions);
+    try {
+        await req.user.populate('transactions').execPopulate();
+        res.status(200).json(req.user.transactions);
+    } catch (err) {
+        res.status(500).send();
+    }
 }
 
 // Validations Functions //
@@ -223,8 +214,7 @@ const isUserExistById = async (id) => {
     return user != null;
 }
 
-const validCashWithdraw = async (id, amountOfCash) => {
-    const user = await User.findById({ _id: id });
+const validCashWithdraw = (user, amountOfCash) => {
     return user.cash + user.credit < amountOfCash ? false : true;
 }
 
