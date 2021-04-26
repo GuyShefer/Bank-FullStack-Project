@@ -5,10 +5,10 @@ const addUser = async (req, res) => {
     const extractUser = { email, password, cash, credit, isActive } = req.body;
 
     if (email == null || password == null || cash < 0 || credit < 0 || isActive == null) {
-        return res.status(406).send('User must contain email, cash, credit and activity.');
+        return res.status(206).send('User must contain email, cash, credit and activity.');
     }
     else if (await isUserExistByEmail(email)) {
-        return res.status(406).send('Email already exists.');
+        return res.status(206).send('Email already exists.');
     }
     else {
         try {
@@ -128,6 +128,9 @@ const transferrMoney = async (req, res) => {
     }
     else if (!await isUserExistById(receivingUserId)) {
         return res.status(406).send('The receiving user is not exists.');
+    }
+    else if(receivingUserId === req.user._id) {
+        return res.status(406).sens("Error, user can not send to himself");
     }
     else if (!await isUserActive(receivingUserId) || !req.user.isActive) {
         return res.status(406).send('One or more of the users are not active.');
